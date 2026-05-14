@@ -1,50 +1,113 @@
 # Enterprise Document Management System (E-DMS) 📄🔒
 
-[cite_start]Enterprise Document Management System (E-DMS) adalah sistem manajemen dokumen berskala *enterprise* yang aman, *scalable*, *auditable*, dan kolaboratif[cite: 20]. [cite_start]Sistem ini dirancang sebagai *single source of truth* untuk menggantikan kebiasaan penyimpanan dokumen yang tersebar (shared drive, email) pada divisi-divisi yang menangani dokumen sensitif dan teregulasi[cite: 22, 33, 34].
+E-DMS adalah aplikasi manajemen dokumen berbasis Laravel yang mendukung upload dokumen, kontrol akses berbasis peran, dan proteksi akses per divisi.
 
-[cite_start]Proyek ini dibangun menggunakan arsitektur **Modular Monolith** dengan rilis bertahap, berfokus pada fungsionalitas inti (MVP 1) sebelum berekspansi ke fitur lanjutan[cite: 23].
+## 🌟 Fitur Utama
 
-## 🌟 Fitur Utama (MVP 1 Scope)
-* [cite_start]**Authentication & RBAC:** Kontrol akses berbutir halus (granular) menggunakan *Role* dan *Permission* (Spatie) yang membatasi akses pada level API dan UI[cite: 48, 163, 167].
-* [cite_start]**Core Document Management:** Mendukung *single*, *bulk*, dan *resumable upload* (Uppy.js) dengan validasi MIME *magic bytes* [cite: 187-189, 312]. [cite_start]File disimpan terpisah di Object Storage (MinIO/AWS S3)[cite: 27, 60].
-* **Versioning System:** Riwayat versi dokumen yang tidak destruktif. [cite_start]File lama tidak dihapus, dan sistem mendukung fitur *rollback*[cite: 37, 216, 220].
-* [cite_start]**Approval Workflow:** Alur persetujuan terstruktur dengan transisi status (*draft* -> *submitted* -> *approved*/*rejected* -> *published*)[cite: 266].
-* [cite_start]**Immutable Audit Log:** Jejak audit *append-only* (tidak bisa diubah/dihapus) yang mencatat setiap aktivitas krusial untuk pemenuhan standar kepatuhan (ISO, SOX)[cite: 28, 37, 293].
+- Authentication dan role-based access control menggunakan **Spatie Laravel Permission**
+- Dashboard dan CRUD dokumen dengan upload file dan _visibility_ per dokumen
+- Akses dokumen berbasis divisi untuk user `employee`
+- `super_admin` dan `admin` dapat melihat semua dokumen
+- Versi dokumen, soft delete, dan history upload
+- Session driver database dan cache driver database
+- Seed data untuk divisi, jabatan, agama, karyawan, user, roles, dan dokumen dasar
 
-## 🛠️ Technology Stack
+## 🛠️ Teknologi
 
-[cite_start]Sistem ini menyeimbangkan kecepatan pengembangan, biaya operasional, dan kemudahan evolusi arsitektur[cite: 57].
+- PHP 8.2+ / Laravel 12
+- PostgreSQL
+- Blade templates + Vite + Tailwind CSS
+- Spatie Laravel Permission untuk roles dan permissions
+- Database session dan cache
 
-**Backend & Database:**
-* [cite_start]**Framework:** Laravel 12 (PHP 8.4) [cite: 60]
-* [cite_start]**Database:** Neon Serverless PostgreSQL (Managed, Auto-scaling) [cite: 60, 73]
-* [cite_start]**Queue & Cache:** Redis + Laravel Queue [cite: 60]
-* [cite_start]**File Storage:** MinIO / AWS S3 Compatible [cite: 60]
+## 🚀 Persyaratan
 
-**Frontend:**
-* [cite_start]**Framework:** Next.js (React, App Router) [cite: 62]
-* [cite_start]**Styling & UI:** TailwindCSS + shadcn/ui [cite: 62]
-* [cite_start]**State Management:** Zustand [cite: 62]
+- PHP ^8.2
+- Composer
+- Node.js + npm
+- PostgreSQL
 
-**Infrastructure / DevOps:**
-* [cite_start]**Containerization:** Docker (App, Worker, Redis) [cite: 67]
-* [cite_start]**CI/CD:** GitHub Actions [cite: 67]
+## ⚙️ Setup Lokal
 
-## 🏗️ Arsitektur & Konsep Inti
-
-1.  **Database Serverless & Connection Pooling:** Menggunakan Neon PostgreSQL. [cite_start]Komunikasi API standar wajib menggunakan koneksi `pooler`, sementara eksekusi migrasi menggunakan koneksi `direct`[cite: 82].
-2.  **Atomic DB Transactions:** Semua operasi *multi-step* (seperti *upload* versi baru atau *approval* dokumen) dibungkus dalam blok transaksi database. [cite_start]Jika satu gagal, seluruh proses di-*rollback*[cite: 30, 223].
-3.  [cite_start]**Asynchronous Processing:** Operasi berat (seperti pembuatan *thumbnail*, *scan* antivirus, pengiriman notifikasi) tidak dilakukan secara sinkron pada *request* HTTP, melainkan didelegasikan ke *Queue Worker* via Redis[cite: 29, 273, 343].
-
-## ⚙️ Persyaratan Lingkungan (Prerequisites)
-* [cite_start]Docker & Docker Compose [cite: 67, 137]
-* [cite_start]Akun Neon Tech (Database) [cite: 70]
-* [cite_start]Akun MinIO/AWS S3 (Object Storage) [cite: 60]
-* [cite_start]PHP 8.4 & Composer (Untuk eksekusi lokal di luar container) [cite: 60]
-
-## 🚀 Setup & Instalasi Lokal
-
-1. **Clone Repository**
+1. Clone repository:
    ```bash
-   git clone [https://github.com/1m4mr4f1/E-DMS.git](https://github.com/1m4mr4f1/E-DMS.git)
+   git clone https://github.com/1m4mr4f1/E-DMS.git
    cd E-DMS
+   ```
+
+2. Install dependency PHP dan JS:
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. Buat file environment:
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Sesuaikan pengaturan database di `.env`:
+   ```dotenv
+   DB_CONNECTION=pgsql
+   DB_HOST=127.0.0.1
+   DB_PORT=5432
+   DB_DATABASE=db_edms
+   DB_USERNAME=postgres
+   DB_PASSWORD=secret
+
+   SESSION_DRIVER=database
+   CACHE_DRIVER=database
+   ```
+
+5. Generate application key:
+   ```bash
+   php artisan key:generate
+   ```
+
+6. Jalankan migrasi dan seeder:
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
+
+7. Build aset Vite / jalankan mode development:
+   ```bash
+   npm run build
+   # atau
+   npm run dev
+   ```
+
+8. Jalankan server lokal:
+   ```bash
+   php artisan serve
+   ```
+
+## 📌 Seeded Roles & Akun Demo
+
+Aplikasi ini sudah menyiapkan role dan user dasar melalui seeder.
+
+- `super_admin`: `super.admin@example.com` / `password123`
+- `admin`: `admin@example.com` / `password123`
+- `manager HR`: `siti.aisyah@example.com` / `password123`
+- `employee HR`: `ahmad.nur@example.com` / `password123`
+
+> Catatan: akun `super_admin` dan `admin` tidak terkait dengan divisi dan dapat melihat semua dokumen.
+
+## 🧩 Struktur Aplikasi
+
+- `app/Http/Controllers/DocumentController.php` — logika upload, listing, dan penghapusan dokumen
+- `app/Models/Document.php` — model dokumen dengan relasi ke `User` dan `Division`
+- `app/Models/User.php` — user autentikasi dan relasi ke `Employee`
+- `database/migrations/` — migrasi tabel `employees`, `divisions`, `documents`, `roles`, `permissions`, `sessions`, `cache`
+- `database/seeders/` — seeder data awal untuk role, employee, user, division, position, religion
+
+## 🧠 Hak Akses Dokumen
+
+- `super_admin`, `admin`: melihat semua dokumen
+- `manager`, `employee`: melihat dokumen yang divisinya sama
+- Dokumen yang diupload oleh user `super_admin` / `admin` dapat dibuat tanpa divisi dan pada saat ini tidak otomatis terlihat oleh `employee` kecuali diubah logikanya
+
+## 📍 Catatan Tambahan
+
+- `documents` menggunakan kolom `visibility` dengan nilai `division_only` dan `company_wide`
+- `user` terhubung ke `employee` dan role ditentukan lewat `spatie/laravel-permission`
+- Kustomisasi lebih lanjut dapat dilakukan pada middleware `role:` di `routes/web.php`
