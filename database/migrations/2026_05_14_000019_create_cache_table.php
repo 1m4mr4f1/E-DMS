@@ -8,16 +8,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('categories', function (Blueprint $table) {
-            $table->id();
-            $table->string('name', 255);
-            $table->text('description')->nullable();
-            $table->timestamps();
+        Schema::create('cache', function (Blueprint $table) {
+            $table->string('key')->primary();
+            $table->text('value');
+            $table->unsignedInteger('expiration')->nullable();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('categories');
+        Schema::dropIfExists('cache');
     }
 };

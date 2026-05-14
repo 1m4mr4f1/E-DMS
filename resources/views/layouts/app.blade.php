@@ -22,5 +22,51 @@
             </footer>
         </div>
     </div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        const GlobalActions = {
+            confirmDelete: function(e, form) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Apakah Anda Yakin?',
+                    text: "Data yang dihapus tidak bisa dikembalikan!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Ya, Eksekusi!',
+                    cancelButtonText: 'Batal',
+                    reverseButtons: true,
+                    customClass: { popup: 'rounded-3xl' }
+                }).then((result) => {
+                    if (result.isConfirmed) { form.submit(); }
+                });
+            }
+        };
+
+        // Otomatis tangkap semua flash message dari Laravel di seluruh aplikasi!
+        document.addEventListener("DOMContentLoaded", function() {
+            @if(session('success'))
+                Swal.fire({
+                    icon: 'success', iconColor: '#10b981', title: 'Berhasil!',
+                    text: '{!! session("success") !!}',
+                    showConfirmButton: false, timer: 1500, customClass: { popup: 'rounded-3xl' }
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error', iconColor: '#ef4444', title: 'Akses Ditolak!',
+                    text: '{!! session("error") !!}',
+                    showConfirmButton: true, confirmButtonColor: '#ef4444', customClass: { popup: 'rounded-3xl' }
+                });
+            @endif
+        });
+    </script>
+</body>
+</html>
+
 </body>
 </html>
