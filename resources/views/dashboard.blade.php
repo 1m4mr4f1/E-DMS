@@ -22,7 +22,7 @@
             <h2 class="text-xl font-bold text-slate-900 tracking-tight">Statistik Overview</h2>
             <div class="flex gap-2 text-sm">
                 <span class="bg-slate-100 px-3 py-1 rounded-full text-slate-600 font-medium italic">
-                    Izin Akses: {{ auth()->user()->roles->first()->name }}
+                    Izin Akses: {{ optional(auth()->user()->roles->first())->name ?? auth()->user()->roleRelation?->name ?? 'Belum ditetapkan' }}
                 </span>
             </div>
         </div>

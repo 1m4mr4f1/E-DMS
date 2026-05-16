@@ -2,27 +2,24 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Division extends Model
 {
-    // Agar bisa mengisi data lewat Seeder atau Controller
+    use HasFactory;
+
+    protected $table = 'divisions';
+
     protected $fillable = [
-        'name',
         'code',
+        'name',
+        'parent_division_id',
+        'is_active',
     ];
 
-    /**
-     * Relasi: Satu Divisi memiliki banyak Pegawai (One-to-Many)
-     */
-    public function employees(): HasMany
+    public function users()
     {
-        return $this->hasMany(Employee::class, 'division_id');
-    }
-
-    public function documents(): HasMany
-    {
-        return $this->hasMany(Document::class, 'division_id');
+        return $this->hasMany(User::class, 'division_id');
     }
 }

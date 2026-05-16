@@ -1,104 +1,139 @@
 @extends('layouts.app')
 
+@php 
+    use Illuminate\Support\Str; 
+@endphp
+
 @section('title', 'Documents')
 
 @section('content')
-<div class="space-y-6">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="w-full space-y-4">
+    
+    <div class="flex items-center justify-between border-b border-slate-200 pb-4">
         <div>
-            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Ruang Dokumen</h1>
-            <p class="text-sm text-slate-500 mt-1">Daftar berkas divisi {{ auth()->user()->division }}.</p>
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">Documents Repository</h1>
+            <p class="text-xs text-slate-500">All available business documents and records within your access privileges.</p>
         </div>
-        <a href="{{ route('documents.create') }}" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm hover:bg-blue-700 transition-all flex items-center gap-2">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Upload Baru
+        <a href="{{ route('documents.create') }}" class="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Upload Document
         </a>
     </div>
 
-    <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-                <thead class="bg-slate-50/50 text-slate-500 font-semibold border-b border-slate-200">
-                    <tr>
-                        <th class="px-6 py-4">Dokumen</th>
-                        <th class="px-6 py-4">Keterangan</th>
-                        <th class="px-6 py-4 text-center">Divisi</th>
-                        <th class="px-6 py-4 text-center">Visibilitas</th>
-                        <th class="px-6 py-4 text-center">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    @forelse($documents as $doc)
-                    <tr class="hover:bg-slate-50/80 transition-colors text-slate-700">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                </div>
-                                <div>
-                                    <p class="font-semibold text-slate-900">{{ $doc->title }}</p>
-                                    <p class="text-[10px] text-slate-400 font-mono tracking-tighter">{{ $doc->document_number }}</p>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 max-w-xs">
-                            <p class="truncate text-xs text-slate-500">{{ $doc->description ?? '-' }}</p>
-                            <p class="text-[10px] text-slate-400 mt-1 italic">Oleh: {{ $doc->creator?->employee?->name ?? 'Unknown' }}</p>
-                        </td>
-                        <td class="px-6 py-4 text-center text-xs font-bold text-slate-500">{{ $doc->division }}</td>
-                        <td class="px-6 py-4 text-center">
-                            <span class="{{ $doc->visibility_badge_class }} px-3 py-1 rounded-full text-[11px] font-bold border">
-                                {{ $doc->visibility == 'company_wide' ? 'Company Wide' : 'Division Only' }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center justify-center gap-1.5 text-slate-400">
-                                <a href="{{ asset('storage/' . $doc->file_path) }}" target="_blank" class="p-2 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all" title="Lihat">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
-                                </a>
-                                <a href="{{ asset('storage/' . $doc->file_path) }}" download class="p-2 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all" title="Download">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                                </a>
-                                @if($doc->is_owner)
-                                <form action="{{ route('documents.destroy', $doc->id) }}" method="POST" onsubmit="GlobalActions.confirmDelete(event, this)">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="p-2 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Hapus">
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
-                                </form>
-                                @endif
-                            </div>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr><td colspan="5" class="px-6 py-20 text-center text-slate-400">Belum ada dokumen.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+    @if($documents->count())
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hiddenw-full">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse text-xs text-slate-600">
+                    <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 font-bold">Document Title</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Description</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Category</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Label</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Visibility</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Created By</th>
+                            <th scope="col" class="px-4 py-3 font-bold">Created At</th>
+                            <th scope="col" class="px-4 py-3 font-bold text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @foreach($documents as $document)
+                            <tr class="hover:bg-slate-50/50 transition-colors">
+                                
+                                <td class="px-4 py-2.5 font-semibold text-slate-900 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-slate-400 shrink-0">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z" />
+                                        </svg>
+                                        <a href="{{ route('documents.show', $document) }}" class="hover:text-blue-600 truncate max-w-[250px]" title="{{ $document->name }}">
+                                            {{ $document->name }}
+                                        </a>
+                                    </div>
+                                </td>
 
-        <div class="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div class="flex items-center gap-3 text-sm text-slate-500 font-medium">
-                <span>Tampilkan</span>
-                <select onchange="window.location.href = `?per_page=${this.value}`" class="bg-white border border-slate-200 rounded-lg p-1 outline-none shadow-sm cursor-pointer">
-                    @foreach([10, 50, 100] as $v)
-                    <option value="{{ $v }}" {{ $perPage == $v ? 'selected' : '' }}>{{ $v }}</option>
-                    @endforeach
-                </select>
-                <span>baris</span>
-                <span class="ml-2 border-l pl-4 font-bold text-slate-700 uppercase text-[10px]">Total: {{ $documents->total() }}</span>
+                                <td class="px-4 py-2.5 text-slate-500 max-w-[350px] truncate" title="{{ $document->description }}">
+                                    {{ $document->description ? Str::limit($document->description, 100) : 'No description provided' }}
+                                </td>
+
+                                <td class="px-4 py-2.5 whitespace-nowrap text-slate-700">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded border border-slate-200 bg-slate-50 font-medium text-slate-600">
+                                        {{ $document->category?->name ?? 'N/A' }}
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-2.5 whitespace-nowrap font-medium">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded border {{ $document->label === 'fix' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100' }}">
+                                        {{ ucfirst($document->label) }}
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-2.5 whitespace-nowrap font-medium">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded border {{ $document->visibility === 'public' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-slate-100 text-slate-600 border-slate-200' }}">
+                                        {{ ucfirst($document->visibility) }}
+                                    </span>
+                                </td>
+
+                                <td class="px-4 py-2.5 text-slate-600 whitespace-nowrap">
+                                    {{ $document->creator?->full_name ?? 'N/A' }}
+                                </td>
+
+                                <td class="px-4 py-2.5 text-slate-500 whitespace-nowrap">
+                                    {{ $document->created_at->format('d M Y H:i') }}
+                                </td>
+
+                                <td class="px-4 py-2.5 text-right whitespace-nowrap">
+                                    <div class="flex items-center justify-end gap-1">
+                                        
+                                        <a href="{{ route('documents.show', $document) }}" title="View Details"
+                                           class="p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            </svg>
+                                        </a>
+
+                                        <a href="{{ route('documents.edit', $document) }}" title="Edit Metadata"
+                                           class="p-1 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                                            </svg>
+                                        </a>
+
+                                        <form action="{{ route('documents.destroy', $document) }}" method="post" class="inline" onsubmit="GlobalActions.confirmDelete(event, this)">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" title="Delete Document"
+                                                    class="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all">
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                                </svg>
+                                            </button>
+                                        </form>
+
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
 
-            <div class="flex items-center gap-2">
-                <a @if($documents->onFirstPage()) href="#" class="p-2 opacity-30 pointer-events-none" @else href="{{ $documents->previousPageUrl() }}" class="p-2 hover:text-blue-600" @endif>
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
-                </a>
-                <span class="text-xs font-bold text-slate-600 px-2 uppercase tracking-widest">Hal {{ $documents->currentPage() }} / {{ max(1, $documents->lastPage()) }}</span>
-                <a @if(!$documents->hasMorePages()) href="#" class="p-2 opacity-30 pointer-events-none" @else href="{{ $documents->nextPageUrl() }}" class="p-2 hover:text-blue-600" @endif>
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                </a>
-            </div>
+            @if($documents->hasPages())
+                <div class="px-4 py-2 bg-slate-50 border-t border-slate-200">
+                    {{ $documents->links() }}
+                </div>
+            @endif
         </div>
-    </div>
+    @else
+        <div class="rounded-xl border border-slate-200 bg-slate-50 p-8 text-center shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" class="w-10 h-10 text-slate-400 mx-auto mb-3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m16.5 0a1.5 1.5 0 00-1.5-1.5H5.25a1.5 1.5 0 00-1.5 1.5m16.5 0l-2.25-4.5a1.5 1.5 0 00-1.352-.836H7.352a1.5 1.5 0 00-1.352.836L3.75 7.5m16.5 0V4.75A1.5 1.5 0 0018.75 3.25H5.25A1.5 1.5 0 003.75 4.75V7.5m9.25 3.75h3.75M9 15h6" />
+            </svg>
+            <p class="text-xs font-semibold text-slate-600">No records found in the repository.</p>
+            <p class="text-[11px] text-slate-400 mt-0.5">Get started by creating your very first digitized document file.</p>
+        </div>
+    @endif
 </div>
 @endsection
