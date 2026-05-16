@@ -2,104 +2,111 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreDocumentRequest;
+use App\Http\Requests\UpdateDocumentRequest;
+use App\Models\Category;
 use App\Models\Document;
+use App\Services\DocumentService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+use Illuminate\Support\Facades\Gate;
 
 class DocumentController extends Controller
 {
-    /**
-     * Menampilkan daftar dokumen dengan Sekat Divisi
-     */
-    public function index(Request $request)
+    public function __construct(protected DocumentService $documentService)
     {
-        $user = Auth::user();
+    }
+
+    public function index(Request $request): View
+    {
+        $user = $request->user();
+        $query = Document::with(['currentVersion', 'tags', 'category']);
+
+        if ($user->role_id != 1) {
+            $query->where(function ($query) use ($user) {
+                $query->where('visibility', 'public')
+                    ->orWhere('division_id', $user->division_id);
+            });
+        }
+
+        $documents = $query->latest()->paginate(12);
+
+        return view('documents.index', compact('documents'));
+    }
+
+    public function create(): View
+    {
+        $categories = Category::orderBy('name')->get();
+
+        return view('documents.create', compact('categories'));
+    }
+
+    public function store(StoreDocumentRequest $request): RedirectResponse
+    {
+        $document = $this->documentService->createDocument($request->validated(), $request->file('file'));
+
+        return redirect()->route('documents.show', $document)
+            ->with('success', 'Dokumen berhasil dibuat.');
+    }
+
+    public function show(Document $document): View
+    {
+        Gate::authorize('view', $document);
+
+        $document->load(['currentVersion', 'versions.uploader', 'tags', 'category']);
         
-        // Pengaturan Pagination (10, 50, 100)
-        $perPage = $request->input('per_page', 10);
-        if (!in_array($perPage, [10, 50, 100])) {
-            $perPage = 10;
-        }
+        $activityLogs = DB::table('document_activity_log as log')
+            ->join('users as actor', 'actor.id', '=', 'log.actor_id')
+            ->where('log.document_id', $document->id)
+            ->select('log.*', 'actor.email as actor_email')
+            ->orderByDesc('log.created_at')
+            ->limit(10)
+            ->get();
 
-        // Query Utama
-        $query = Document::with([
-            'creator:id,employee_id',
-            'creator.employee:id,name',
-            'divisionRelation:id,name',
-        ]);
-
-        /**
-         * LOGIKA SEKAT DIVISI:
-         * super_admin & admin: Bisa melihat semua data tanpa filter.
-         * employee: Hanya bisa melihat dokumen yang divisinya sama dengan mereka.
-         */
-        if (!$user->hasAnyRole(['super_admin', 'admin'])) {
-            $employeeDivisionId = $user->employee?->division_id;
-            $query->where('division_id', $employeeDivisionId);
-        }
-
-        $documents = $query->latest()->paginate($perPage);
-
-        return view('documents.index', compact('documents', 'perPage'));
+        return view('documents.show', compact('document', 'activityLogs'));
     }
 
-    public function create()
+    public function edit(Document $document): View
     {
-        return view('documents.create');
+        Gate::authorize('update', $document);
+
+        $categories = Category::orderBy('name')->get();
+
+        return view('documents.edit', compact('document', 'categories'));
     }
 
-    /**
-     * Menyimpan Dokumen Baru
-     */
-    public function store(Request $request)
+    public function update(UpdateDocumentRequest $request, Document $document): RedirectResponse
     {
-        $request->validate([
-            'title'         => 'required|string|max:255',
-            'visibility'    => 'required|in:division_only,company_wide',
-            'document_file' => 'required|file|mimes:pdf,doc,docx,xls,xlsx|max:10240',
-            'description'   => 'nullable|string',
-        ]);
+        Gate::authorize('update', $document);
 
-        $user = Auth::user();
-        $file = $request->file('document_file');
-        
-        // Nama file unik
-        $cleanFileName = time() . '_' . str_replace(' ', '_', $file->getClientOriginalName());
-        $filePath = $file->storeAs('documents', $cleanFileName, 'public');
+        $this->documentService->updateDocument($document, $request->validated(), $request->file('file'));
 
-        Document::create([
-            'title'           => $request->title,
-            'description'     => $request->description,
-            'file_path'       => $filePath,
-            'mime_type'       => $file->getClientMimeType(),
-            'file_size'       => $file->getSize(),
-            'uploaded_by'     => $user->id,
-            'division_id'     => $user->hasAnyRole(['super_admin', 'admin']) ? null : $user->employee?->division_id,
-            'visibility'      => $request->visibility,
-            'version'         => 1,
-        ]);
-
-        return redirect()->route('documents.index')->with('success', 'Dokumen berhasil diunggah!');
+        return redirect()->route('documents.show', $document)
+            ->with('success', 'Dokumen berhasil diperbarui.');
     }
 
-    /**
-     * Menghapus Dokumen (Hanya untuk Pemilik)
-     */
-    public function destroy(Document $document)
+    public function destroy(Document $document): RedirectResponse
     {
-        // Proteksi tingkat Controller (Double Protection)
-        if (Auth::id() !== $document->uploaded_by) {
-            return redirect()->back()->with('error', 'Anda tidak memiliki hak untuk menghapus dokumen ini.');
-        }
+        Gate::authorize('delete', $document);
 
-        // Hapus file fisik
-        if (Storage::disk('public')->exists($document->file_path)) {
-            Storage::disk('public')->delete($document->file_path);
-        }
+        $this->documentService->deleteDocument($document);
 
-        $document->delete();
+        return redirect()->route('documents.index')
+            ->with('success', 'Dokumen berhasil dihapus.');
+    }
 
-        return redirect()->route('documents.index')->with('success', 'Dokumen telah dihapus.');
+    public function downloadVersion(\App\Models\DocumentVersion $version)
+    {
+        Gate::authorize('view', $version->document);
+
+        $document = $version->document;
+        $extension = pathinfo($version->file_original_name, PATHINFO_EXTENSION);
+        $customFileName = "{$document->document_number}_{$document->name}_v{$version->version_number}.{$extension}";
+
+        return response()->streamDownload(function () use ($version) {
+            echo \Illuminate\Support\Facades\Storage::disk('public')->get($version->file_path);
+        }, $customFileName);
     }
 }

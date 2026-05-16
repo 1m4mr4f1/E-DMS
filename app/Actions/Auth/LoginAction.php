@@ -11,9 +11,8 @@ class LoginAction
 {
     public function execute(array $credentials, bool $remember = false) 
     {
-        $user = User::whereHas('employee', function ($query) use ($credentials) {
-            $query->where('email', $credentials['email']);
-        })->first();
+        // Use users.email directly to avoid legacy employees table dependency
+        $user = User::where('email', $credentials['email'])->first();
 
         if (! $user || ! Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([

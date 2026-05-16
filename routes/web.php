@@ -2,44 +2,26 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\UserController;
 
-    Route::get('/', function () {
-        return view('welcome');
+Route::get('/', function () {
+    return view('welcome');
 });
 
-    //LOGIN ROUTES
-    Route::get('/login', [LoginController::class, 'show'])->name('login');
-    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
-    // LOGOUT ROUTE
-    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+Route::get('/login', [LoginController::class, 'show'])->name('login');
+Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
-    // DASHBOARD ROUTE
-    Route::middleware(['auth'])->group(function () {
-        
-        // Semua Role bisa akses Dashboard
-        Route::get('/dashboard', function () {
-            return view('dashboard');
-        })->name('dashboard');
-
-        // DOCUMENT ROUTES
-        Route::get('/documents', [DocumentController::class, 'index'])->name('documents.index');
-        Route::get('/documents/create', [DocumentController::class, 'create'])->name('documents.create');
-        Route::post('/documents', [DocumentController::class, 'store'])->name('documents.store');
-        Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
-
-        // Fitur Khusus admin & manager
-        Route::middleware(['role:admin|manager'])->group(function () {
-            Route::get('/approvals', function () { return "Halaman Approval"; });
-        });
-
-        // Fitur Khusus admin saja
-        Route::middleware(['role:admin'])->group(function () {
-            Route::get('/audit-logs', function () { return "Halaman Audit Logs"; });
-            Route::get('/users', function () { return "Halaman Users Management"; });
-            Route::get('/settings', function () { return "Halaman System Settings"; });
-        });
-    });
-
-
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('documents/versions/{version}/download', [DocumentController::class, 'downloadVersion'])->name('documents.versions.download');
+    Route::resource('documents', DocumentController::class);
     
+    Route::get('profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::resource('users', UserController::class)->except(['show']);
+});

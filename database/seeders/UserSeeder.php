@@ -2,42 +2,60 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class UserSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        $employees = DB::table('employees')
-            ->select('id', 'email')
-            ->orderBy('id')
-            ->get();
+        $now = Carbon::now();
 
-        $roleOverrides = [
-            'super.admin@example.com' => 'super_admin',
-            'admin@example.com' => 'admin',
-            'siti.aisyah@example.com' => 'manager',
-        ];
+        $adminRole = DB::table('roles')->where('code', 'admin')->first();
+        $itDivision = DB::table('divisions')->where('code', 'IT')->first();
 
-        foreach ($employees as $employee) {
-            $role = $roleOverrides[$employee->email] ?? 'employee';
+        DB::table('users')->insert([
+            'employee_id' => 'EMP-0001',
+            'full_name' => 'Super Admin',
+            'email' => 'admin@example.com',
+            'password' => Hash::make('password'),
+            'division_id' => $itDivision->id,
+            'role_id' => $adminRole->id,
+            'avatar_url' => null,
+            'is_active' => true,
+            'created_at' => $now,
+            'updated_at' => $now,
+        ]);
 
-            $user = User::updateOrCreate(
-                ['employee_id' => $employee->id],
-                [
-                    'password' => Hash::make('password123'),
-                    'role' => $role,
-                    'is_active' => true,
-                    'last_login' => null,
-                    'remember_token' => Str::random(10),
-                ]
-            );
+        $managerRole = DB::table('roles')->where('code', 'manager')->first();
+        $hrDivision = DB::table('divisions')->where('code', 'HR')->first();
 
-            $user->assignRole($role);
-        }
+        DB::table('users')->insert([
+            [
+                'employee_id' => 'EMP-0002',
+                'full_name' => 'Alice Manager',
+                'email' => 'alice.manager@example.com',
+                'password' => Hash::make('password'),
+                'division_id' => $hrDivision->id,
+                'role_id' => $managerRole->id,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            [
+                'employee_id' => 'EMP-0003',
+                'full_name' => 'Bob Staff',
+                'email' => 'bob.staff@example.com',
+                'password' => Hash::make('password'),
+                'division_id' => $itDivision->id,
+                'role_id' => DB::table('roles')->where('code', 'staff')->first()->id,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+        ]);
     }
 }
+
