@@ -22,14 +22,7 @@
     <div class="flex items-center gap-4">
         
         <div class="relative inline-block text-left border-r border-slate-200 pr-4" id="notification-dropdown-wrapper">
-            @php
-                $userId = auth()->id();
-                // Hitung jumlah data belum terbaca dari tabel kustom
-                $unreadCount = DB::table('notifications')->where('user_id', $userId)->where('is_read', false)->count();
-                // Ambil 5 notifikasi teranyar
-                $allNotifications = DB::table('notifications')->where('user_id', $userId)->orderByDesc('created_at')->limit(5)->get();
-            @endphp
-
+            
             <button type="button" id="notification-bell-btn" class="relative p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all focus:outline-none">
                 <span class="sr-only">View notifications</span>
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -47,9 +40,9 @@
                 <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-xl">
                     <h3 class="text-xs font-bold text-slate-900 tracking-tight">System Notifications</h3>
                     @if($unreadCount > 0)
-                        <form action="{{ route('notifications.read-all') }}" method="POST" class="inline">
+                        <form action="{{ route('notifications.read-all') }}" method="POST" class="inline m-0 p-0">
                             @csrf
-                            <button type="submit" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                            <button type="submit" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-none p-0 cursor-pointer">
                                 Mark all as read
                             </button>
                         </form>
@@ -58,24 +51,26 @@
 
                 <div class="max-h-64 overflow-y-auto divide-y divide-slate-100" id="notification-items-container">
                     @forelse($allNotifications as $notification)
-                        <a href="{{ route('notifications.read', $notification->id) }}" 
-                           class="block p-3 text-left transition-colors hover:bg-slate-50 {{ !$notification->is_read ? 'bg-blue-50/40 hover:bg-blue-50/70' : '' }}">
-                            <div class="flex gap-2.5 items-start">
-                                @if(!$notification->is_read)
-                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></span>
-                                @else
-                                    <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-1.5 shrink-0"></span>
-                                @endif
-                                
-                                <div class="space-y-0.5 min-w-0">
-                                    <p class="text-xs font-bold text-slate-800 truncate">{{ $notification->title }}</p>
-                                    <p class="text-[11px] text-slate-600 leading-relaxed break-words">{{ $notification->body }}</p>
-                                    <p class="text-[9px] font-medium text-slate-400 mt-1">
-                                        {{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}
-                                    </p>
+                        <form action="{{ route('notifications.read', $notification->id) }}" method="POST" class="block m-0 p-0">
+                            @csrf
+                            <button type="submit" class="w-full block p-3 text-left transition-colors hover:bg-slate-50 {{ !$notification->is_read ? 'bg-blue-50/40 hover:bg-blue-50/70' : '' }}">
+                                <div class="flex gap-2.5 items-start">
+                                    @if(!$notification->is_read)
+                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></span>
+                                    @else
+                                        <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-1.5 shrink-0"></span>
+                                    @endif
+                                    
+                                    <div class="space-y-0.5 min-w-0">
+                                        <p class="text-xs font-bold text-slate-800 truncate">{{ $notification->title }}</p>
+                                        <p class="text-[11px] text-slate-600 leading-relaxed break-words">{{ $notification->body }}</p>
+                                        <p class="text-[9px] font-medium text-slate-400 mt-1">
+                                            {{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </a>
+                            </button>
+                        </form>
                     @empty
                         <div class="py-8 text-center text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 mx-auto mb-2 text-slate-300">
@@ -125,9 +120,9 @@
 
                 <div class="border-t border-slate-100 my-1"></div>
 
-                <form action="{{ route('logout') }}" method="POST">
+                <form action="{{ route('logout') }}" method="POST" class="m-0 p-0">
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left">
+                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left border-none cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4 text-rose-500">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1 0 12.728 0M12 3v9" />
                         </svg>
@@ -149,22 +144,25 @@
         const notifDropdown = document.getElementById('notification-dropdown');
         const notifWrapper = document.getElementById('notification-dropdown-wrapper');
 
+        // Handler Dropdown Profil
         if (profileTrigger && profileDropdown) {
             profileTrigger.addEventListener('click', function (e) {
                 e.stopPropagation();
                 profileDropdown.classList.toggle('hidden');
-                if (notifDropdown) notifDropdown.classList.add('hidden');
+                if (notifDropdown) notifDropdown.classList.add('hidden'); // Tutup notifikasi jika profil dibuka
             });
         }
 
+        // Handler Dropdown Notifikasi
         if (notifTrigger && notifDropdown) {
             notifTrigger.addEventListener('click', function (e) {
                 e.stopPropagation();
                 notifDropdown.classList.toggle('hidden');
-                if (profileDropdown) profileDropdown.classList.add('hidden');
+                if (profileDropdown) profileDropdown.classList.add('hidden'); // Tutup profil jika notifikasi dibuka
             });
         }
 
+        // Event listener klik area luar untuk menutup semua dropdown secara otomatis
         document.addEventListener('click', function (e) {
             if (profileWrapper && !profileWrapper.contains(e.target) && profileDropdown) {
                 profileDropdown.classList.add('hidden');

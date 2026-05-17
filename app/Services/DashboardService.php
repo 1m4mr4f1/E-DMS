@@ -31,11 +31,30 @@ class DashboardService
 
     public function getRecentActivity(User $user): array
     {
-        return DB::table('document_activity_log as activity')
+        $query = DB::table('document_activity_log as activity')
             ->join('documents', 'documents.id', 'activity.document_id')
             ->join('users as actor', 'actor.id', 'activity.actor_id')
-            ->whereNull('documents.deleted_at')
-            ->select([
+            ->whereNull('documents.deleted_at');
+
+        // FIX SECURITY HOLE: Cegah User mengintip riwayat log aktivitas dokumen rahasia divisi lain
+        if ($user->role_id != 1) { // Jika bukan Super Admin, filter ketat aksesnya
+            $query->where(function ($q) use ($user) {
+                $q->where('documents.division_id', $user->division_id)
+                  ->orWhere('documents.visibility', 'public')
+                  ->orWhereExists(function ($sub) use ($user) {
+                      $sub->select(DB::raw(1))
+                          ->from('document_sharing')
+                          ->whereColumn('document_sharing.document_id', 'documents.id')
+                          ->where('document_sharing.shared_to_division_id', $user->division_id)
+                          ->where('document_sharing.is_active', true)
+                          ->where(function ($expiry) {
+                              $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                          });
+                  });
+            });
+        }
+
+        return $query->select([
                 'activity.id',
                 'activity.action_type',
                 'activity.created_at',
@@ -126,7 +145,17 @@ class DashboardService
             ->whereNull('documents.deleted_at')
             ->where(function ($query) use ($divisionId) {
                 $query->where('division_id', $divisionId)
-                    ->orWhere('visibility', 'public');
+                    ->orWhere('visibility', 'public')
+                    ->orWhereExists(function ($sub) use ($divisionId) {
+                        $sub->select(DB::raw(1))
+                            ->from('document_sharing')
+                            ->whereColumn('document_sharing.document_id', 'documents.id')
+                            ->where('document_sharing.shared_to_division_id', $divisionId)
+                            ->where('document_sharing.is_active', true)
+                            ->where(function ($expiry) {
+                                $expiry->whereNull('expires_at')->orWhere('expires_at', '>', now());
+                            });
+                    });
             });
     }
 
@@ -146,8 +175,8 @@ class DashboardService
     protected function formatActionLabel(string $action): string
     {
         return match (strtolower($action)) {
-            'upload' => 'Uploaded',
-            'edit', 'edited' => 'Edited',
+            'upload', 'created' => 'Uploaded',
+            'edit', 'edited', 'updated' => 'Edited',
             'download' => 'Downloaded',
             'view' => 'Viewed',
             default => ucfirst($action),
