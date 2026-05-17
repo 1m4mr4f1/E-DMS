@@ -24,4 +24,14 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('profile', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::resource('users', UserController::class)->except(['show']);
+
+    Route::post('documents/{document}/share', [DocumentController::class, 'share'])->name('documents.share');
+    Route::delete('documents/share/{id}', [DocumentController::class, 'revokeShare'])->name('documents.share.revoke');
+    Route::resource('documents', DocumentController::class);
+
+    Route::post('/documents/{id}/restore', [DocumentController::class, 'restore'])->name('documents.restore');
+
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::get('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'read'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'readAll'])->name('notifications.read-all');
 });

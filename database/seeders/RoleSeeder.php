@@ -20,8 +20,15 @@ class RoleSeeder extends Seeder
         ];
 
         foreach ($roles as $r) {
-            DB::table('roles')->insert(array_merge($r, ['created_at' => $now, 'updated_at' => $now]));
+            DB::table('roles')->updateOrInsert(
+                ['code' => $r['code']],
+                [
+                    'name' => $r['name'],
+                    'hierarchy_level' => $r['hierarchy_level'],
+                    'created_at' => clone $now,
+                    'updated_at' => clone $now
+                ]
+            );
         }
     }
 }
-

@@ -18,26 +18,77 @@
             </span>
         </div>
     </div>
-    
-    <div class="flex-1 max-w-lg mx-6 relative hidden md:block">
-        <svg class="h-4 w-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-        </svg>
-        <input type="text" placeholder="Search infrastructure records, categories, or users..." 
-            class="w-full pl-9 pr-4 py-1.5 rounded-lg border border-slate-200 bg-slate-50/50 focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 outline-none transition-all placeholder:text-slate-400 text-xs">
-    </div>
 
     <div class="flex items-center gap-4">
-        <div class="flex items-center text-slate-400 border-r border-slate-200 pr-4">
-            <button class="p-1.5 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-all relative">
+        
+        <div class="relative inline-block text-left border-r border-slate-200 pr-4" id="notification-dropdown-wrapper">
+            @php
+                $userId = auth()->id();
+                // Hitung jumlah data belum terbaca dari tabel kustom
+                $unreadCount = DB::table('notifications')->where('user_id', $userId)->where('is_read', false)->count();
+                // Ambil 5 notifikasi teranyar
+                $allNotifications = DB::table('notifications')->where('user_id', $userId)->orderByDesc('created_at')->limit(5)->get();
+            @endphp
+
+            <button type="button" id="notification-bell-btn" class="relative p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all focus:outline-none">
+                <span class="sr-only">View notifications</span>
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                 </svg>
-                <span class="absolute top-1.5 right-1.5 h-1.5 w-1.5 bg-blue-600 rounded-full"></span>
+
+                @if($unreadCount > 0)
+                    <span id="notification-badge" class="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-rose-600 rounded-full shadow-sm border border-white animate-pulse">
+                        {{ $unreadCount }}
+                    </span>
+                @endif
             </button>
+
+            <div id="notification-dropdown" class="hidden absolute right-0 mt-2 w-80 rounded-xl border border-slate-200 bg-white shadow-lg focus:outline-none z-50 origin-top-right transition-all">
+                <div class="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-xl">
+                    <h3 class="text-xs font-bold text-slate-900 tracking-tight">System Notifications</h3>
+                    @if($unreadCount > 0)
+                        <form action="{{ route('notifications.read-all') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:underline">
+                                Mark all as read
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                <div class="max-h-64 overflow-y-auto divide-y divide-slate-100" id="notification-items-container">
+                    @forelse($allNotifications as $notification)
+                        <a href="{{ route('notifications.read', $notification->id) }}" 
+                           class="block p-3 text-left transition-colors hover:bg-slate-50 {{ !$notification->is_read ? 'bg-blue-50/40 hover:bg-blue-50/70' : '' }}">
+                            <div class="flex gap-2.5 items-start">
+                                @if(!$notification->is_read)
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600 mt-1.5 shrink-0"></span>
+                                @else
+                                    <span class="w-1.5 h-1.5 rounded-full bg-transparent mt-1.5 shrink-0"></span>
+                                @endif
+                                
+                                <div class="space-y-0.5 min-w-0">
+                                    <p class="text-xs font-bold text-slate-800 truncate">{{ $notification->title }}</p>
+                                    <p class="text-[11px] text-slate-600 leading-relaxed break-words">{{ $notification->body }}</p>
+                                    <p class="text-[9px] font-medium text-slate-400 mt-1">
+                                        {{ \Carbon\Carbon::parse($notification->created_at)->diffForHumans() }}
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    @empty
+                        <div class="py-8 text-center text-slate-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-7 h-7 mx-auto mb-2 text-slate-300">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                            </svg>
+                            <p class="text-[11px] font-medium">No new notifications.</p>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
 
-        <div class="relative">
+        <div class="relative" id="profile-dropdown-wrapper">
             <button id="top-profile-trigger" class="flex items-center gap-3 p-1 hover:bg-slate-50 rounded-xl transition-all border border-transparent hover:border-slate-200/60 select-none">
                 <div class="text-right hidden sm:block pl-1">
                     <p class="text-xs font-bold text-slate-800 leading-none truncate max-w-[140px]">{{ auth()->user()->full_name ?? auth()->user()->name }}</p>
@@ -90,20 +141,37 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const trigger = document.getElementById('top-profile-trigger');
-        const dropdown = document.getElementById('top-profile-dropdown');
+        const profileTrigger = document.getElementById('top-profile-trigger');
+        const profileDropdown = document.getElementById('top-profile-dropdown');
+        const profileWrapper = document.getElementById('profile-dropdown-wrapper');
 
-        if (trigger && dropdown) {
-            trigger.addEventListener('click', function (event) {
-                event.stopPropagation();
-                dropdown.classList.toggle('hidden');
-            });
+        const notifTrigger = document.getElementById('notification-bell-btn');
+        const notifDropdown = document.getElementById('notification-dropdown');
+        const notifWrapper = document.getElementById('notification-dropdown-wrapper');
 
-            document.addEventListener('click', function (event) {
-                if (!trigger.contains(event.target) && !dropdown.contains(event.target)) {
-                    dropdown.classList.add('hidden');
-                }
+        if (profileTrigger && profileDropdown) {
+            profileTrigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                profileDropdown.classList.toggle('hidden');
+                if (notifDropdown) notifDropdown.classList.add('hidden');
             });
         }
+
+        if (notifTrigger && notifDropdown) {
+            notifTrigger.addEventListener('click', function (e) {
+                e.stopPropagation();
+                notifDropdown.classList.toggle('hidden');
+                if (profileDropdown) profileDropdown.classList.add('hidden');
+            });
+        }
+
+        document.addEventListener('click', function (e) {
+            if (profileWrapper && !profileWrapper.contains(e.target) && profileDropdown) {
+                profileDropdown.classList.add('hidden');
+            }
+            if (notifWrapper && !notifWrapper.contains(e.target) && notifDropdown) {
+                notifDropdown.classList.add('hidden');
+            }
+        });
     });
 </script>

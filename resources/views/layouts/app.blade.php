@@ -18,12 +18,12 @@
             </main>
 
             <footer class="px-8 py-4 bg-white border-t border-slate-200 text-center text-xs text-slate-400">
-                &copy; 2026 Enterprise Document Management System | Internal Use Only v1.0
+                &copy; {{ date('Y') }} Enterprise Document Management System | Internal Use Only v1.0
             </footer>
         </div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <script>
         const GlobalActions = {
@@ -31,42 +31,49 @@
                 e.preventDefault();
                 Swal.fire({
                     title: 'Apakah Anda Yakin?',
-                    text: "Data yang dihapus tidak bisa dikembalikan!",
+                    text: "Dokumen ini akan dipindahkan ke dalam Trash!",
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#ef4444',
                     cancelButtonColor: '#64748b',
-                    confirmButtonText: 'Ya, Eksekusi!',
+                    confirmButtonText: 'Ya, Pindahkan!',
                     cancelButtonText: 'Batal',
                     reverseButtons: true,
                     customClass: { popup: 'rounded-3xl' }
                 }).then((result) => {
-                    if (result.isConfirmed) { form.submit(); }
+                    if (result.isConfirmed) { 
+                        form.submit(); 
+                    }
                 });
             }
         };
 
-        // Otomatis tangkap semua flash message dari Laravel di seluruh aplikasi!
+        // Otomatis menangkap semua flash message dari Laravel
         document.addEventListener("DOMContentLoaded", function() {
             @if(session('success'))
                 Swal.fire({
-                    icon: 'success', iconColor: '#10b981', title: 'Berhasil!',
+                    icon: 'success', 
+                    iconColor: '#10b981', 
+                    title: 'Berhasil!',
                     text: '{!! session("success") !!}',
-                    showConfirmButton: false, timer: 1500, customClass: { popup: 'rounded-3xl' }
+                    showConfirmButton: false, 
+                    timer: 1500, 
+                    customClass: { popup: 'rounded-3xl' }
                 });
             @endif
 
             @if(session('error'))
                 Swal.fire({
-                    icon: 'error', iconColor: '#ef4444', title: 'Akses Ditolak!',
+                    icon: 'error', 
+                    iconColor: '#ef4444', 
+                    title: 'Akses Ditolak!',
                     text: '{!! session("error") !!}',
-                    showConfirmButton: true, confirmButtonColor: '#ef4444', customClass: { popup: 'rounded-3xl' }
+                    showConfirmButton: true, 
+                    confirmButtonColor: '#ef4444', 
+                    customClass: { popup: 'rounded-3xl' }
                 });
             @endif
         });
     </script>
-</body>
-</html>
-
 </body>
 </html>
